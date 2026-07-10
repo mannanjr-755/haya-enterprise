@@ -45,6 +45,33 @@ export const expenseService = {
     return mapExpense(expense)
   },
 
+  async update(
+    id: string,
+    data: {
+      category?: ExpenseCategory
+      amount?: number
+      date?: string
+      description?: string
+      machineId?: string | null
+    },
+  ): Promise<Expense> {
+    try {
+      const expense = await prisma.expense.update({
+        where: { id },
+        data: {
+          ...(data.category !== undefined && { category: data.category }),
+          ...(data.amount !== undefined && { amount: data.amount }),
+          ...(data.date !== undefined && { date: new Date(data.date) }),
+          ...(data.description !== undefined && { description: data.description }),
+          ...(data.machineId !== undefined && { machineId: data.machineId || null }),
+        },
+      })
+      return mapExpense(expense)
+    } catch {
+      throw new Error('Expense not found')
+    }
+  },
+
   async delete(id: string): Promise<void> {
     try {
       await prisma.expense.delete({ where: { id } })

@@ -12,14 +12,14 @@ export const machineSchema = z.object({
   brand: z.string().min(1, 'Brand is required'),
   model: z.string().min(1, 'Model is required'),
   serialNumber: z.string().min(1, 'Serial number is required'),
-  registrationNumber: z.string().optional(),
+  registrationNumber: z.string().optional().or(z.literal('')),
   purchaseDate: z.string().min(1, 'Purchase date is required'),
   purchaseCost: z.coerce.number().min(0, 'Purchase cost must be positive'),
   currentValue: z.coerce.number().min(0, 'Current value must be positive'),
   depreciationRate: z.coerce.number().min(0).max(100),
   workingHours: z.coerce.number().min(0),
   status: z.enum(['ACTIVE', 'IDLE', 'MAINTENANCE', 'PARTNERSHIP', 'RETIRED']),
-  location: z.string().optional(),
+  location: z.string().optional().or(z.literal('')),
 })
 
 export const expenseSchema = z.object({

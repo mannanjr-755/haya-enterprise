@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Plus, Download } from 'lucide-react'
+import { Plus, Download, Pencil } from 'lucide-react'
 import { PageHeader } from '@/components/dashboard/page-header'
 import { DataTable } from '@/components/dashboard/data-table'
 import { DeleteItemButton } from '@/components/dashboard/delete-item-button'
@@ -82,11 +82,18 @@ export default function MachineryPage() {
       key: 'actions',
       header: '',
       render: (item: Machine) => (
-        <DeleteItemButton
-          label={item.name}
-          loading={deletingId === item.id}
-          onDelete={() => handleDelete(item)}
-        />
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+            <Link href={`/machinery/${item.id}/edit`} aria-label={`Edit ${item.name}`}>
+              <Pencil className="h-4 w-4" />
+            </Link>
+          </Button>
+          <DeleteItemButton
+            label={item.name}
+            loading={deletingId === item.id}
+            onDelete={() => handleDelete(item)}
+          />
+        </div>
       ),
     },
   ]

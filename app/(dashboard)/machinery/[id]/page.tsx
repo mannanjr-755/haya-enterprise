@@ -2,6 +2,7 @@
 
 import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { PageHeader } from '@/components/dashboard/page-header'
 import { DeleteItemButton } from '@/components/dashboard/delete-item-button'
 import { Badge } from '@/components/ui/badge'
@@ -14,7 +15,7 @@ import { useToast } from '@/components/providers/toast-provider'
 import { getMachineCostSummary, calculateSaleProfit } from '@/lib/machinery/calculations'
 import { STATUS_COLORS } from '@/lib/constants/navigation'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
-import { TrendingUp, TrendingDown } from 'lucide-react'
+import { TrendingUp, TrendingDown, Pencil } from 'lucide-react'
 
 export default function MachineDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -91,12 +92,19 @@ export default function MachineDetailPage({ params }: { params: Promise<{ id: st
         title={machine.name}
         description={`${machine.brand} ${machine.model} — ${machine.type}`}
         actions={
-          <DeleteItemButton
-            label={machine.name}
-            display="button"
-            description={`This will permanently delete "${machine.name}". This action cannot be undone.`}
-            onDelete={handleDelete}
-          />
+          <>
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/machinery/${id}/edit`}>
+                <Pencil className="mr-2 h-4 w-4" /> Edit
+              </Link>
+            </Button>
+            <DeleteItemButton
+              label={machine.name}
+              display="button"
+              description={`This will permanently delete "${machine.name}". This action cannot be undone.`}
+              onDelete={handleDelete}
+            />
+          </>
         }
       />
 

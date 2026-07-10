@@ -100,8 +100,10 @@ export default function ExpenseCategoriesPage() {
         if (!res.ok) throw new Error(data.error ?? 'Failed to add category')
         setCategories((prev) => [...prev, data.category].sort((a, b) => a.label.localeCompare(b.label)))
         toast('Category added successfully')
+        closeDialog()
       } else if (dialogMode === 'edit' && editingCategory) {
-        const res = await fetch(`/api/categories/${editingCategory.id}`, {
+        const categoryId = editingCategory.id
+        const res = await fetch(`/api/categories/${categoryId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ label: formLabel.trim(), description: formDescription.trim() || undefined }),
@@ -110,12 +112,15 @@ export default function ExpenseCategoriesPage() {
         if (!res.ok) throw new Error(data.error ?? 'Failed to update category')
         setCategories((prev) =>
           prev
-            .map((c) => (c.id === editingCategory.id ? data.category : c))
+            .map((c) => (c.id === categoryId ? data.category : c))
             .sort((a, b) => a.label.localeCompare(b.label)),
         )
         toast('Category updated successfully')
+        closeDialog()
+      } else {
+        setFormError('Unable to save changes. Please close and reopen the form.')
+        return
       }
-      closeDialog()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Something went wrong'
       setFormError(message)

@@ -11,6 +11,7 @@ interface MachineryContextValue {
   error: string | null
   refreshMachines: () => Promise<Machine[]>
   addMachine: (data: MachineFormData) => Promise<Machine>
+  updateMachine: (id: string, data: MachineFormData) => Promise<Machine>
   deleteMachine: (id: string) => Promise<void>
   updateMachineCosts: (id: string, operatingCosts: number, salesExpenses: number) => Promise<Machine>
   sellMachine: (id: string, salePrice: number, operatingCosts: number, salesExpenses: number) => Promise<Machine | null>
@@ -58,6 +59,18 @@ export function MachineryProvider({ children }: { children: React.ReactNode }) {
     const result = await res.json()
     if (!res.ok) throw new Error(result.error ?? 'Failed to create machine')
     setMachines((prev) => [result.machine, ...prev])
+    return result.machine
+  }, [])
+
+  const updateMachine = useCallback(async (id: string, data: MachineFormData): Promise<Machine> => {
+    const res = await fetch(`/api/machines/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    const result = await res.json()
+    if (!res.ok) throw new Error(result.error ?? 'Failed to update machine')
+    setMachines((prev) => prev.map((m) => (m.id === id ? result.machine : m)))
     return result.machine
   }, [])
 
@@ -112,12 +125,13 @@ export function MachineryProvider({ children }: { children: React.ReactNode }) {
       error,
       refreshMachines,
       addMachine,
+      updateMachine,
       deleteMachine,
       updateMachineCosts,
       sellMachine,
       getMachine,
     }),
-    [machines, loading, error, refreshMachines, addMachine, deleteMachine, updateMachineCosts, sellMachine, getMachine],
+    [machines, loading, error, refreshMachines, addMachine, updateMachine, deleteMachine, updateMachineCosts, sellMachine, getMachine],
   )
 
   return <MachineryContext.Provider value={value}>{children}</MachineryContext.Provider>

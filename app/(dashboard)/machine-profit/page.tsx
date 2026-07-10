@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Download, Loader2, Plus } from 'lucide-react'
+import { Download, Loader2, Plus, Pencil } from 'lucide-react'
 import { PageHeader } from '@/components/dashboard/page-header'
 import { DataTable } from '@/components/dashboard/data-table'
 import { DeleteItemButton } from '@/components/dashboard/delete-item-button'
@@ -125,11 +125,18 @@ export default function MachineProfitPage() {
       key: 'actions',
       header: '',
       render: (i: ProfitRow) => (
-        <DeleteItemButton
-          label={i.itemName}
-          loading={deletingId === i.id}
-          onDelete={() => handleDelete(i)}
-        />
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+            <Link href={`/sales?edit=${i.id}`} aria-label={`Edit ${i.itemName}`}>
+              <Pencil className="h-4 w-4" />
+            </Link>
+          </Button>
+          <DeleteItemButton
+            label={i.itemName}
+            loading={deletingId === i.id}
+            onDelete={() => handleDelete(i)}
+          />
+        </div>
       ),
     },
   ]

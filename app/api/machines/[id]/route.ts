@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { machineService } from '@/lib/services/machine-service'
+import { machineSchema } from '@/lib/validations/schemas'
 import { z } from 'zod'
 
 const patchSchema = z.discriminatedUnion('action', [
@@ -26,6 +27,22 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ machine })
   } catch {
     return NextResponse.json({ error: 'Failed to fetch machine' }, { status: 500 })
+  }
+}
+
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params
+    const body = await request.json()
+    const parsed = machineSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.errors[0]?.message ?? 'Invalid data' }, { status: 400 })
+    }
+    const machine = await machineService.update(id, parsed.data)
+    return NextResponse.json({ machine })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to update machine'
+    return NextResponse.json({ error: message }, { status: message === 'Machine not found' ? 404 : 400 })
   }
 }
 

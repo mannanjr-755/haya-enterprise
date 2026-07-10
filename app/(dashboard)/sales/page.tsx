@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Plus, Pencil, Loader2 } from 'lucide-react'
 import { PageHeader } from '@/components/dashboard/page-header'
 import { DataTable } from '@/components/dashboard/data-table'
@@ -34,6 +35,7 @@ type DialogMode = 'add' | 'edit' | null
 
 export default function SalesPage() {
   const { toast } = useToast()
+  const searchParams = useSearchParams()
   const { machines, refreshMachines } = useMachinery()
   const [sales, setSales] = useState<SalesRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -47,6 +49,7 @@ export default function SalesPage() {
   const [machineCost, setMachineCost] = useState('')
   const [sellingPrice, setSellingPrice] = useState('')
   const [formError, setFormError] = useState('')
+  const handledEditParam = useRef(false)
 
   const fetchSales = useCallback(async () => {
     setLoading(true)
@@ -105,6 +108,15 @@ export default function SalesPage() {
     setDialogMode('edit')
   }
 
+  useEffect(() => {
+    const editId = searchParams.get('edit')
+    if (!editId || loading || handledEditParam.current) return
+    const sale = sales.find((s) => s.id === editId)
+    if (!sale) return
+    handledEditParam.current = true
+    void openEditDialog(sale)
+  }, [searchParams, sales, loading])
+
   const closeDialog = () => {
     setDialogMode(null)
     setEditingSale(null)
@@ -152,18 +164,23 @@ export default function SalesPage() {
         if (!res.ok) throw new Error(data.error ?? 'Failed to add sale')
         setSales((prev) => [data.sale, ...prev])
         toast('Sale added successfully')
+        closeDialog()
       } else if (dialogMode === 'edit' && editingSale) {
-        const res = await fetch(`/api/sales/${editingSale.id}`, {
+        const saleId = editingSale.id
+        const res = await fetch(`/api/sales/${saleId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error ?? 'Failed to update sale')
-        setSales((prev) => prev.map((s) => (s.id === editingSale.id ? data.sale : s)))
+        setSales((prev) => prev.map((s) => (s.id === saleId ? data.sale : s)))
         toast('Sale updated successfully')
+        closeDialog()
+      } else {
+        setFormError('Unable to save changes. Please close and reopen the form.')
+        return
       }
-      closeDialog()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Something went wrong'
       setFormError(message)

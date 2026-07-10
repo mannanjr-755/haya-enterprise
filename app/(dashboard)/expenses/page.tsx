@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Download, Plus, Loader2 } from 'lucide-react'
+import { Download, Plus, Pencil, Loader2 } from 'lucide-react'
 import { PageHeader } from '@/components/dashboard/page-header'
 import { DataTable } from '@/components/dashboard/data-table'
 import { DeleteItemButton } from '@/components/dashboard/delete-item-button'
@@ -31,13 +31,16 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { exportToExcel } from '@/lib/export'
 import type { Expense, ExpenseCategory } from '@/types'
 
+type DialogMode = 'add' | 'edit' | null
+
 export default function ExpensesPage() {
   const { toast } = useToast()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [dialogMode, setDialogMode] = useState<DialogMode>(null)
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const [category, setCategory] = useState<ExpenseCategory>('GENERAL')
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
@@ -63,16 +66,28 @@ export default function ExpensesPage() {
   }, [fetchExpenses])
 
   const openAddDialog = () => {
+    setEditingExpense(null)
     setCategory('GENERAL')
     setAmount('')
     setDate(new Date().toISOString().split('T')[0])
     setDescription('')
     setFormError('')
-    setDialogOpen(true)
+    setDialogMode('add')
+  }
+
+  const openEditDialog = (expense: Expense) => {
+    setEditingExpense(expense)
+    setCategory(expense.category)
+    setAmount(String(expense.amount))
+    setDate(expense.date)
+    setDescription(expense.description)
+    setFormError('')
+    setDialogMode('edit')
   }
 
   const closeDialog = () => {
-    setDialogOpen(false)
+    setDialogMode(null)
+    setEditingExpense(null)
     setFormError('')
   }
 
@@ -96,21 +111,40 @@ export default function ExpensesPage() {
     setFormError('')
 
     try {
-      const res = await fetch('/api/expenses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          category,
-          amount: parsedAmount,
-          date,
-          description: description.trim(),
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Failed to add expense')
-      setExpenses((prev) => [data.expense, ...prev])
-      toast('Expense added successfully')
-      closeDialog()
+      const payload = {
+        category,
+        amount: parsedAmount,
+        date,
+        description: description.trim(),
+      }
+
+      if (dialogMode === 'add') {
+        const res = await fetch('/api/expenses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? 'Failed to add expense')
+        setExpenses((prev) => [data.expense, ...prev])
+        toast('Expense added successfully')
+        closeDialog()
+      } else if (dialogMode === 'edit' && editingExpense) {
+        const expenseId = editingExpense.id
+        const res = await fetch(`/api/expenses/${expenseId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? 'Failed to update expense')
+        setExpenses((prev) => prev.map((e) => (e.id === expenseId ? data.expense : e)))
+        toast('Expense updated successfully')
+        closeDialog()
+      } else {
+        setFormError('Unable to save changes. Please close and reopen the form.')
+        return
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Something went wrong'
       setFormError(message)
@@ -148,7 +182,12 @@ export default function ExpensesPage() {
       key: 'actions',
       header: '',
       render: (item: Expense) => (
-        <DeleteItemButton label={item.description} loading={deletingId === item.id} onDelete={() => handleDelete(item)} />
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(item)} aria-label={`Edit ${item.description}`}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <DeleteItemButton label={item.description} loading={deletingId === item.id} onDelete={() => handleDelete(item)} />
+        </div>
       ),
     },
   ]
@@ -198,12 +237,16 @@ export default function ExpensesPage() {
         </Tabs>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeDialog()}>
+      <Dialog open={dialogMode !== null} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent>
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>Add Expense</DialogTitle>
-              <DialogDescription>Record a new business expense. It will be saved permanently.</DialogDescription>
+              <DialogTitle>{dialogMode === 'add' ? 'Add Expense' : 'Edit Expense'}</DialogTitle>
+              <DialogDescription>
+                {dialogMode === 'add'
+                  ? 'Record a new business expense. It will be saved permanently.'
+                  : 'Update expense details. Changes will be saved permanently.'}
+              </DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
@@ -271,7 +314,7 @@ export default function ExpensesPage() {
                     Saving...
                   </>
                 ) : (
-                  'Add Expense'
+                  dialogMode === 'add' ? 'Add Expense' : 'Save Changes'
                 )}
               </Button>
             </DialogFooter>

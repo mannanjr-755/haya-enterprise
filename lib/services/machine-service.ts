@@ -89,6 +89,35 @@ export const machineService = {
     return mapMachine(machine)
   },
 
+  async update(id: string, data: MachineFormData): Promise<Machine> {
+    const current = await prisma.machine.findUnique({ where: { id } })
+    if (!current) throw new Error('Machine not found')
+
+    try {
+      const machine = await prisma.machine.update({
+        where: { id },
+        data: {
+          name: data.name,
+          type: data.type,
+          brand: data.brand,
+          model: data.model,
+          serialNumber: data.serialNumber,
+          registrationNumber: data.registrationNumber || null,
+          purchaseDate: new Date(data.purchaseDate),
+          purchaseCost: data.purchaseCost,
+          currentValue: data.currentValue,
+          depreciationRate: data.depreciationRate,
+          workingHours: data.workingHours,
+          status: current.status === 'SOLD' ? 'SOLD' : data.status,
+          location: data.location || null,
+        },
+      })
+      return mapMachine(machine)
+    } catch {
+      throw new Error('Machine not found')
+    }
+  },
+
   async updateCosts(id: string, operatingCosts: number, salesExpenses: number): Promise<Machine> {
     const machine = await prisma.machine.update({
       where: { id },
